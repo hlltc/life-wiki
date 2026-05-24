@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}LifeWiki{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+    <style>
+        .wiki-content h1 { font-size: 2em; font-weight: bold; margin: 0.67em 0; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.3em; }
+        .wiki-content h2 { font-size: 1.5em; font-weight: bold; margin: 0.83em 0; }
+        .wiki-content h3 { font-size: 1.17em; font-weight: bold; margin: 1em 0; }
+        .wiki-content ul { list-style-type: disc; padding-left: 2em; margin: 1em 0; }
+        .wiki-content ol { list-style-type: decimal; padding-left: 2em; margin: 1em 0; }
+        .wiki-content li { margin: 0.5em 0; }
+        .wiki-content blockquote { border-left: 4px solid #e5e7eb; padding-left: 1em; color: #6b7280; margin: 1em 0; }
+        .wiki-content code { background: #f3f4f6; padding: 0.2em 0.4em; border-radius: 3px; font-size: 0.9em; }
+        .wiki-content pre { background: #f3f4f6; padding: 1em; border-radius: 6px; overflow-x: auto; margin: 1em 0; }
+        .wiki-content a { color: #2563eb; text-decoration: underline; }
+        .wiki-content mark { background: #fef08a; padding: 0.1em 0.2em; border-radius: 2px; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <nav class="bg-white border-b border-gray-200 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center space-x-8">
+                    <a href="/" class="text-xl font-bold text-gray-900">LifeWiki</a>
+                    <div class="hidden md:flex items-center space-x-4">
+                        <a href="/" class="text-gray-600 hover:text-gray-900 px-3 py-2 text-sm font-medium">首页</a>
+                        <a href="/search" class="text-gray-600 hover:text-gray-900 px-3 py-2 text-sm font-medium">搜索</a>
+                        <a href="/timeline" class="text-gray-600 hover:text-gray-900 px-3 py-2 text-sm font-medium">时间线</a>
+                        <a href="/api/wiki/index" class="text-gray-600 hover:text-gray-900 px-3 py-2 text-sm font-medium">索引</a>
+                        <a href="/ingest" class="text-gray-600 hover:text-gray-900 px-3 py-2 text-sm font-medium">导入</a>
+                    </div>
+                </div>
+                <div class="flex items-center">
+                    <form action="/search" method="get" class="flex">
+                        <input type="text" name="q" placeholder="搜索 Wiki..."
+                               class="border border-gray-300 rounded-l-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-48">
+                        <button type="submit" class="bg-blue-600 text-white px-4 py-2 text-sm rounded-r-lg hover:bg-blue-700">搜索</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </nav>
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {% block content %}{% endblock %}
+    </main>
+    <footer class="border-t border-gray-200 mt-16 py-6 text-center text-gray-500 text-sm">
+        LifeWiki — 基于 LLM 的个人一生知识库
+    </footer>
+</body>
+</html>

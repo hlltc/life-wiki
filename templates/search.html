@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}搜索 - LifeWiki{% endblock %}
+{% block content %}
+<div class="mb-6">
+    <h1 class="text-2xl font-bold text-gray-900">搜索 Wiki</h1>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+    <div>
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-lg font-semibold mb-4">全文搜索</h2>
+            <form id="search-form" class="flex gap-3">
+                <input type="text" id="search-input" placeholder="输入关键词..."
+                       class="flex-1 border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <button type="submit" class="bg-blue-600 text-white px-4 py-2 text-sm rounded-lg hover:bg-blue-700">搜索</button>
+            </form>
+            <div id="search-results" class="mt-4"></div>
+        </div>
+    </div>
+
+    <div>
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold mb-4">AI 提问</h2>
+            <form id="ask-form" class="space-y-3">
+                <textarea id="ask-input" rows="3" placeholder="用自然语言提问，例如：最近有哪些重要的AI进展？"
+                          class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                <button type="submit" class="bg-blue-600 text-white px-4 py-2 text-sm rounded-lg hover:bg-blue-700">提问</button>
+            </form>
+            <div id="ask-result" class="mt-4 hidden">
+                <div id="ask-answer" class="prose max-w-none text-sm"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('search-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const q = document.getElementById('search-input').value;
+    const container = document.getElementById('search-results');
+    container.innerHTML = '<p class="text-gray-400 text-sm">搜索中...</p>';
+
+    const resp = await fetch('/api/query/search?q=' + encodeURIComponent(q));
+    const data = await resp.json();
+
+    if (data.results.length === 0) {
+        container.innerHTML = '<p class="text-gray-400 text-sm">未找到相关结果</p>';
+        return;
+    }
+
+    container.innerHTML = data.results.map(r => `
+        <div class="border-b border-gray-100 py-3">
+            <a href="/wiki/${r.slug}" class="text-sm font-medium text-blue-600 hover:underline">${r.title}</a>
+            <span class="text-xs text-gray-400 ml-2">${r.page_type}</span>
+            <p class="text-xs text-gray-600 mt-1">${r.snippet || r.summary || ''}</p>
+        </div>
+    `).join('');
+});
+
+document.getElementById('ask-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const input = document.getElementById('ask-input');
+    const result = document.getElementById('ask-result');
+    const answer = document.getElementById('ask-answer');
+    result.classList.remove('hidden');
+    answer.textContent = '思考中...';
+
+    try {
+        const resp = await fetch('/api/query/ask?question=' + encodeURIComponent(input.value));
+        const data = await resp.json();
+        answer.innerHTML = data.answer.replace(/\n/g, '<br>');
+    } catch (err) {
+        answer.textContent = '出错了: ' + err.message;
+    }
+});
+</script>
+{% endblock %}

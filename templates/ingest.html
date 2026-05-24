@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% block title %}导入 - LifeWiki{% endblock %}
+{% block content %}
+<div class="mb-6">
+    <h1 class="text-2xl font-bold text-gray-900">导入数据</h1>
+    <p class="mt-1 text-gray-500 text-sm">上传文件或扫描目录，LLM 将自动理解和整理</p>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+    <div>
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-lg font-semibold mb-4">上传文件</h2>
+            <form id="upload-form" class="space-y-4">
+                <div class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center" id="drop-zone">
+                    <p class="text-gray-500">拖拽文件到此处，或点击选择文件</p>
+                    <input type="file" id="file-input" name="file" class="hidden" multiple
+                           accept=".md,.txt,.jpg,.jpeg,.png,.gif,.webp,.mp3,.wav,.m4a,.mp4,.mov,.pdf">
+                    <button type="button" onclick="document.getElementById('file-input').click()"
+                            class="mt-3 text-blue-600 text-sm hover:underline">选择文件</button>
+                </div>
+                <select name="category" class="border border-gray-300 rounded-lg px-3 py-2 text-sm w-full">
+                    <option value="upload">上传</option>
+                    <option value="ai">AI</option>
+                    <option value="hot">热点</option>
+                    <option value="tennis">网球</option>
+                    <option value="dota2">Dota2</option>
+                </select>
+                <button type="submit" class="bg-blue-600 text-white px-6 py-2 text-sm rounded-lg hover:bg-blue-700 w-full">上传并处理</button>
+            </form>
+            <div id="upload-result" class="mt-4 hidden"></div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold mb-4">扫描目录</h2>
+            <form id="scan-form" class="space-y-4">
+                <div>
+                    <label class="text-sm text-gray-600 mb-1 block">目录路径</label>
+                    <input type="text" id="dir-path" placeholder="/path/to/directory"
+                           class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="text-sm text-gray-600 mb-1 block">文件匹配模式</label>
+                    <input type="text" id="dir-pattern" value="**/*.md"
+                           class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <button type="submit" class="bg-blue-600 text-white px-6 py-2 text-sm rounded-lg hover:bg-blue-700 w-full">扫描并导入</button>
+            </form>
+            <div id="scan-result" class="mt-4 hidden"></div>
+        </div>
+    </div>
+
+    <div>
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold mb-4">导入历史</h2>
+            <div id="ingest-history">
+                <p class="text-gray-400 text-sm">加载中...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Load ingest history
+async function loadHistory() {
+    const resp = await fetch('/api/ingest/status?limit=20');
+    const data = await resp.json();
+    const container = document.getElementById('ingest-history');
+
+    if (!data.ingests || data.ingests.length === 0) {
+        container.innerHTML = '<p class="text-gray-400 text-sm">暂无导入记录</p>';
+        return;
+    }
+
+    container.innerHTML = data.ingests.map(item => `
+        <div class="border-b border-gray-100 py-3">
+            <div class="flex justify-between items-center">
+                <span class="text-sm font-medium">${item.source_title || 'Unknown'}</span>
+                <span class="text-xs px-2 py-1 rounded ${item.status === 'completed' ? 'bg-green-100 text-green-700' : item.status === 'failed' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}">${item.status}</span>
+            </div>
+            <div class="text-xs text-gray-400 mt-1">${item.category || ''} · ${item.created_at || ''}</div>
+            ${item.result_summary ? '<div class="text-xs text-gray-600 mt-1">' + item.result_summary + '</div>' : ''}
+        </div>
+    `).join('');
+}
+
+// Upload form
+document.getElementById('upload-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fileInput = document.getElementById('file-input');
+    const category = e.target.querySelector('[name=category]').value;
+    const result = document.getElementById('upload-result');
+    result.classList.remove('hidden');
+
+    for (const file of fileInput.files) {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('category', category);
+
+        result.innerHTML = `<p class="text-gray-500 text-sm">正在处理 ${file.name}...</p>`;
+        try {
+            const resp = await fetch('/api/ingest/file', { method: 'POST', body: formData });
+            const data = await resp.json();
+            result.innerHTML = `<p class="text-sm ${data.status === 'completed' ? 'text-green-600' : 'text-red-600'}">${file.name}: ${data.status}</p>`;
+        } catch (err) {
+            result.innerHTML = `<p class="text-sm text-red-600">${file.name}: ${err.message}</p>`;
+        }
+    }
+    loadHistory();
+});
+
+// Directory scan
+document.getElementById('scan-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const path = document.getElementById('dir-path').value;
+    const pattern = document.getElementById('dir-pattern').value;
+    const result = document.getElementById('scan-result');
+    result.classList.remove('hidden');
+    result.innerHTML = '<p class="text-gray-500 text-sm">扫描中...</p>';
+
+    try {
+        const resp = await fetch('/api/ingest/directory?path=' + encodeURIComponent(path) + '&pattern=' + encodeURIComponent(pattern), { method: 'POST' });
+        const data = await resp.json();
+        const completed = data.results?.filter(r => r.status === 'completed').length || 0;
+        const skipped = data.results?.filter(r => r.status === 'skipped').length || 0;
+        const errors = data.results?.filter(r => r.status === 'error').length || 0;
+        result.innerHTML = `<p class="text-sm text-green-600">完成: ${completed}, 跳过(重复): ${skipped}, 错误: ${errors}</p>`;
+    } catch (err) {
+        result.innerHTML = `<p class="text-sm text-red-600">${err.message}</p>`;
+    }
+    loadHistory();
+});
+
+// Drag and drop
+const dropZone = document.getElementById('drop-zone');
+dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('border-blue-500'); });
+dropZone.addEventListener('dragleave', () => { dropZone.classList.remove('border-blue-500'); });
+dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('border-blue-500');
+    document.getElementById('file-input').files = e.dataTransfer.files;
+});
+
+loadHistory();
+</script>
+{% endblock %}

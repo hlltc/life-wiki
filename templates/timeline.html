@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}时间线 - LifeWiki{% endblock %}
+{% block content %}
+<div class="mb-6">
+    <h1 class="text-2xl font-bold text-gray-900">时间线</h1>
+    <p class="mt-1 text-gray-500 text-sm">按时间浏览你的生命事件</p>
+</div>
+
+<div class="flex gap-4 mb-6">
+    <select id="filter-category" class="border border-gray-300 rounded-lg px-3 py-2 text-sm">
+        <option value="">所有类别</option>
+        <option value="ai">AI</option>
+        <option value="hot">热点</option>
+        <option value="tennis">网球</option>
+        <option value="dota2">Dota2</option>
+        <option value="upload">上传</option>
+    </select>
+    <button onclick="loadTimeline()" class="bg-blue-600 text-white px-4 py-2 text-sm rounded-lg hover:bg-blue-700">加载</button>
+</div>
+
+<div id="timeline-container" class="relative">
+    <div class="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-200"></div>
+    <div id="timeline-events" class="pl-10 space-y-4">
+        <p class="text-gray-400 text-sm">点击"加载"获取时间线事件</p>
+    </div>
+</div>
+
+<script>
+async function loadTimeline() {
+    const category = document.getElementById('filter-category').value;
+    const container = document.getElementById('timeline-events');
+    container.innerHTML = '<p class="text-gray-400 text-sm">加载中...</p>';
+
+    let url = '/api/timeline?limit=100';
+    if (category) url += '&category=' + category;
+
+    const resp = await fetch(url);
+    const data = await resp.json();
+
+    if (data.events.length === 0) {
+        container.innerHTML = '<p class="text-gray-400 text-sm">暂无时间线事件。导入数据后将自动提取。</p>';
+        return;
+    }
+
+    const categoryColors = {
+        ai: 'bg-blue-500', hot: 'bg-red-500', tennis: 'bg-green-500',
+        dota2: 'bg-purple-500', upload: 'bg-yellow-500',
+    };
+
+    container.innerHTML = data.events.map(evt => `
+        <div class="relative">
+            <div class="absolute -left-10 top-2 w-3 h-3 rounded-full ${categoryColors[evt.category] || 'bg-gray-400'} ring-4 ring-gray-50"></div>
+            <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                <div class="flex items-center gap-2 mb-1">
+                    <span class="text-xs font-mono text-gray-400">${evt.date}</span>
+                    <span class="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-600">${evt.category}</span>
+                </div>
+                <h3 class="text-sm font-semibold text-gray-900">${evt.title}</h3>
+                ${evt.description ? '<p class="text-xs text-gray-600 mt-1">' + evt.description + '</p>' : ''}
+            </div>
+        </div>
+    `).join('');
+}
+
+loadTimeline();
+</script>
+{% endblock %}

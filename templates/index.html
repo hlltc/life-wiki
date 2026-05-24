@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}LifeWiki - 首页{% endblock %}
+{% block content %}
+<div class="mb-8">
+    <h1 class="text-3xl font-bold text-gray-900">LifeWiki</h1>
+    <p class="mt-2 text-gray-600">基于 LLM 的个人一生知识库</p>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+    <div class="bg-white rounded-lg shadow p-6">
+        <div class="text-3xl font-bold text-blue-600">{{ stats.source_count or 0 }}</div>
+        <div class="text-gray-500 text-sm mt-1">原始文件</div>
+    </div>
+    <div class="bg-white rounded-lg shadow p-6">
+        <div class="text-3xl font-bold text-green-600">{{ stats.page_count or 0 }}</div>
+        <div class="text-gray-500 text-sm mt-1">Wiki 页面</div>
+    </div>
+    <div class="bg-white rounded-lg shadow p-6">
+        <div class="text-3xl font-bold text-purple-600">{{ stats.event_count or 0 }}</div>
+        <div class="text-gray-500 text-sm mt-1">时间事件</div>
+    </div>
+    <div class="bg-white rounded-lg shadow p-6">
+        <div class="text-3xl font-bold text-orange-600">{{ stats.cross_ref_count or 0 }}</div>
+        <div class="text-gray-500 text-sm mt-1">交叉引用</div>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">最近导入</h2>
+        {% if recent_ingests %}
+        <div class="space-y-3">
+            {% for item in recent_ingests %}
+            <div class="flex items-center justify-between border-b border-gray-100 pb-2">
+                <div>
+                    <span class="text-sm font-medium text-gray-900">{{ item.source_title or "Unknown" }}</span>
+                    <span class="text-xs text-gray-400 ml-2">{{ item.category }}</span>
+                </div>
+                <span class="text-xs px-2 py-1 rounded {% if item.status == 'completed' %}bg-green-100 text-green-700{% elif item.status == 'failed' %}bg-red-100 text-red-700{% else %}bg-yellow-100 text-yellow-700{% endif %}">
+                    {{ item.status }}
+                </span>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-gray-400 text-sm">暂无导入记录。前往 <a href="/ingest" class="text-blue-600 underline">导入页面</a> 开始。</p>
+        {% endif %}
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">最近更新的 Wiki 页面</h2>
+        {% if recent_pages %}
+        <div class="space-y-3">
+            {% for page in recent_pages %}
+            <div class="flex items-center justify-between border-b border-gray-100 pb-2">
+                <a href="/wiki/{{ page.slug }}" class="text-sm font-medium text-blue-600 hover:underline">{{ page.title }}</a>
+                <span class="text-xs text-gray-400">{{ page.page_type }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-gray-400 text-sm">暂无 Wiki 页面。导入数据后将自动生成。</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="mt-8 bg-white rounded-lg shadow p-6">
+    <h2 class="text-lg font-semibold text-gray-900 mb-4">快速提问</h2>
+    <form id="ask-form" class="flex gap-3">
+        <input type="text" id="ask-input" placeholder="用自然语言向你的 Wiki 提问..."
+               class="flex-1 border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <button type="submit" class="bg-blue-600 text-white px-6 py-2 text-sm rounded-lg hover:bg-blue-700">提问</button>
+    </form>
+    <div id="ask-result" class="mt-4 hidden">
+        <div id="ask-answer" class="prose max-w-none text-sm"></div>
+    </div>
+</div>
+
+<script>
+document.getElementById('ask-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const input = document.getElementById('ask-input');
+    const result = document.getElementById('ask-result');
+    const answer = document.getElementById('ask-answer');
+    result.classList.remove('hidden');
+    answer.textContent = '思考中...';
+
+    try {
+        const resp = await fetch('/api/query/ask?question=' + encodeURIComponent(input.value));
+        const data = await resp.json();
+        answer.innerHTML = data.answer.replace(/\n/g, '<br>');
+    } catch (err) {
+        answer.textContent = '出错了: ' + err.message;
+    }
+});
+</script>
+{% endblock %}

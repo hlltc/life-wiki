@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}{{ page.title }} - LifeWiki{% endblock %}
+{% block content %}
+<div class="mb-4">
+    <nav class="text-sm text-gray-500">
+        <a href="/" class="hover:underline">首页</a>
+        <span class="mx-2">/</span>
+        <span>{{ page.page_type }}</span>
+        <span class="mx-2">/</span>
+        <span class="text-gray-900">{{ page.title }}</span>
+    </nav>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+    <div class="lg:col-span-3 bg-white rounded-lg shadow p-8">
+        <div class="wiki-content">
+            {{ content | safe }}
+        </div>
+    </div>
+
+    <div class="space-y-6">
+        <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-sm font-semibold text-gray-900 mb-3">页面信息</h3>
+            <dl class="text-xs space-y-2">
+                <div><dt class="text-gray-500">类型</dt><dd class="font-medium">{{ page.page_type }}</dd></div>
+                <div><dt class="text-gray-500">来源数</dt><dd class="font-medium">{{ page.source_count }}</dd></div>
+                <div><dt class="text-gray-500">最后编译</dt><dd class="font-medium">{{ page.last_compiled_at or "N/A" }}</dd></div>
+            </dl>
+        </div>
+
+        {% if sources %}
+        <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-sm font-semibold text-gray-900 mb-3">来源文件</h3>
+            <ul class="space-y-2">
+                {% for src in sources %}
+                <li class="text-xs">
+                    <span class="text-gray-400">{{ src.date or "" }}</span>
+                    <span class="font-medium text-gray-700">{{ src.title or src.path }}</span>
+                    <span class="text-gray-400 ml-1">({{ src.category }})</span>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        {% if refs %}
+        <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-sm font-semibold text-gray-900 mb-3">相关页面</h3>
+            <ul class="space-y-2">
+                {% for ref in refs %}
+                <li>
+                    <a href="/wiki/{{ ref.slug }}" class="text-sm text-blue-600 hover:underline">{{ ref.title }}</a>
+                    <span class="text-xs text-gray-400 ml-1">{{ ref.relation_type }}</span>
+                    {% if ref.context %}<p class="text-xs text-gray-500">{{ ref.context }}</p>{% endif %}
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
